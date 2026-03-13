@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import 'login_screen.dart';
+import 'home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -36,7 +38,6 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    // Navigate after splash
     Future.delayed(const Duration(seconds: 3), () {
       _checkAuthAndNavigate();
     });
@@ -50,15 +51,17 @@ class _SplashScreenState extends State<SplashScreen>
 
     if (!mounted) return;
 
-    // TODO: Ganti dengan halaman Login/Home sesuai kebutuhan
-    // Untuk saat ini, tampilkan pesan bahwa koneksi berhasil
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          hasToken ? 'Selamat datang kembali!' : 'Silakan login atau register',
-        ),
-      ),
-    );
+    if (hasToken) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
+    }
   }
 
   @override
@@ -86,7 +89,6 @@ class _SplashScreenState extends State<SplashScreen>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Logo / Icon
                 Container(
                   width: 120,
                   height: 120,
@@ -101,8 +103,6 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                 ),
                 const SizedBox(height: 24),
-
-                // App Name
                 const Text(
                   'RumahKu',
                   style: TextStyle(
@@ -113,8 +113,6 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                 ),
                 const SizedBox(height: 8),
-
-                // Tagline
                 Text(
                   'Temukan Rumah Impianmu',
                   style: TextStyle(
@@ -124,8 +122,6 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                 ),
                 const SizedBox(height: 48),
-
-                // Loading indicator
                 SizedBox(
                   width: 40,
                   height: 40,

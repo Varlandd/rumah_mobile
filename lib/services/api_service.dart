@@ -8,7 +8,8 @@ import '../models/budget_result.dart';
 class ApiService {
   // UNTUK EMULATOR: http://10.0.2.2:8000/api
   // UNTUK HP FISIK (WiFi sama): http://192.168.x.x:8000/api (ganti IP komputer Anda)
-  static const String baseUrl = 'http://10.0.2.2:8000/api';
+  // static const String baseUrl = 'http://10.114.170.50:8000/api';
+  static const String baseUrl = 'http://192.168.1.6:8000/api';
   
   final storage = const FlutterSecureStorage();
 
