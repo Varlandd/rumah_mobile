@@ -9,8 +9,17 @@ class ApiService {
   // UNTUK EMULATOR: http://10.0.2.2:8000/api
   // UNTUK HP FISIK (WiFi sama): http://192.168.x.x:8000/api (ganti IP komputer Anda)
   // static const String baseUrl = 'http://10.114.170.50:8000/api';
-  static const String baseUrl = 'http://192.168.1.6:8000/api';
-  
+  // static const String baseUrl = 'http://192.168.1.6:8000/api';
+  // static const String baseUrl = 'http://10.10.186.218:8000/api';
+  static const String baseUrl = 'http://192.168.1.22:8000/api';
+
+  static String getImageUrl(String? foto) {
+    if (foto == null) return '';
+    if (foto.startsWith('http')) return foto;
+    final base = baseUrl.replaceAll('/api', '');
+    return '$base$foto';
+  }
+
   final storage = const FlutterSecureStorage();
 
   Future<String?> getToken() async {
@@ -61,7 +70,10 @@ class ApiService {
         await storage.write(key: 'auth_token', value: data['data']['token']);
         return {'success': true, 'user': User.fromJson(data['data']['user'])};
       } else {
-        return {'success': false, 'message': data['message'] ?? 'Registrasi gagal'};
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Registrasi gagal',
+        };
       }
     } catch (e) {
       return {'success': false, 'message': 'Error: $e'};
@@ -76,10 +88,7 @@ class ApiService {
       final response = await http.post(
         Uri.parse('$baseUrl/login'),
         headers: await getHeaders(),
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-        }),
+        body: jsonEncode({'email': email, 'password': password}),
       );
 
       final data = jsonDecode(response.body);
@@ -105,6 +114,75 @@ class ApiService {
       // Ignore
     } finally {
       await storage.delete(key: 'auth_token');
+    }
+  }
+
+  Future<User?> getProfile() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/user'),
+        headers: await getHeaders(needsAuth: true),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return User.fromJson(data['data']); // Adjusted because my Laravel API returns ['data' => $user]
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>> updateProfile({
+    required String name,
+    required String email,
+    String? phone,
+  }) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/user/profile'),
+        headers: await getHeaders(needsAuth: true),
+        body: jsonEncode({
+          'name': name,
+          'email': email,
+          'phone': phone,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data['success']) {
+        return {'success': true, 'user': User.fromJson(data['data'])};
+      }
+      return {'success': false, 'message': data['message'] ?? 'Gagal update profil'};
+    } catch (e) {
+      return {'success': false, 'message': 'Error: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> updatePassword({
+    required String currentPassword,
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/user/password'),
+        headers: await getHeaders(needsAuth: true),
+        body: jsonEncode({
+          'current_password': currentPassword,
+          'password': password,
+          'password_confirmation': passwordConfirmation,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data['success']) {
+        return {'success': true};
+      }
+      return {'success': false, 'message': data['message'] ?? 'Gagal update password'};
+    } catch (e) {
+      return {'success': false, 'message': 'Error: $e'};
     }
   }
 

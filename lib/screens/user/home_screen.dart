@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
-import '../providers/rumah_provider.dart';
-import '../models/rumah.dart';
-import 'login_screen.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/rumah_provider.dart';
+import '../../models/rumah.dart';
+import '../login_screen.dart';
+import 'detail_rumah_screen.dart';
+import 'search_screen.dart';
+import 'favorit_screen.dart';
+import 'profile_edit_screen.dart';
+import '../../services/api_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -71,6 +76,26 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: const Color(0xFF0f766e),
         actions: [
           IconButton(
+            icon: const Icon(Icons.search, color: Colors.white),
+            tooltip: 'Cari',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SearchScreen()),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.favorite, color: Colors.white),
+            tooltip: 'Favorit',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const FavoritScreen()),
+              );
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
             tooltip: 'Keluar',
             onPressed: _logout,
@@ -108,6 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
           SliverToBoxAdapter(
             child: Container(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+
               decoration: const BoxDecoration(
                 color: Color(0xFF0f766e),
                 borderRadius: BorderRadius.only(
@@ -260,6 +286,27 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(height: 20),
 
+        // Tombol Edit Profil
+        ElevatedButton.icon(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ProfileEditScreen()),
+            );
+          },
+          icon: const Icon(Icons.edit_outlined),
+          label: const Text('Edit Profil'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF0f766e),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+
         // Tombol Logout
         OutlinedButton.icon(
           onPressed: _logout,
@@ -315,101 +362,115 @@ class _RumahCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          children: [
-            // Foto / placeholder
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: const Color(0xFF0f766e).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DetailRumahScreen(
+                rumahId: rumah.id,
+                namaRumah: rumah.nama,
               ),
-              child: rumah.foto != null
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        rumah.foto!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(
-                          Icons.home_outlined,
-                          size: 36,
-                          color: Color(0xFF0f766e),
-                        ),
-                      ),
-                    )
-                  : const Icon(
-                      Icons.home_outlined,
-                      size: 36,
-                      color: Color(0xFF0f766e),
-                    ),
             ),
-            const SizedBox(width: 14),
-
-            // Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    rumah.nama,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.location_on_outlined,
-                        size: 13,
-                        color: Colors.grey,
-                      ),
-                      const SizedBox(width: 2),
-                      Expanded(
-                        child: Text(
-                          rumah.lokasi,
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 12,
+          );
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              // Foto / placeholder
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0f766e).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: rumah.foto != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(
+                          ApiService.getImageUrl(rumah.foto),
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Icon(
+                            Icons.home_outlined,
+                            size: 36,
+                            color: Color(0xFF0f766e),
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        )
+                      )
+                    : const Icon(
+                        Icons.home_outlined,
+                        size: 36,
+                        color: Color(0xFF0f766e),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    _formatHarga(rumah.harga),
-                    style: const TextStyle(
-                      color: Color(0xFF0f766e),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      _chip(Icons.bed_outlined, '${rumah.kamarTidur} KT'),
-                      const SizedBox(width: 6),
-                      _chip(Icons.bathroom_outlined, '${rumah.kamarMandi} KM'),
-                      const SizedBox(width: 6),
-                      _chip(
-                        Icons.straighten_outlined,
-                        '${rumah.luasBangunan}m²',
-                      ),
-                    ],
-                  ),
-                ],
               ),
-            ),
-          ],
+              const SizedBox(width: 14),
+
+              // Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      rumah.nama,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on_outlined,
+                          size: 13,
+                          color: Colors.grey,
+                        ),
+                        const SizedBox(width: 2),
+                        Expanded(
+                          child: Text(
+                            rumah.lokasi,
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 12,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _formatHarga(rumah.harga),
+                      style: const TextStyle(
+                        color: Color(0xFF0f766e),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        _chip(Icons.bed_outlined, '${rumah.kamarTidur} KT'),
+                        const SizedBox(width: 6),
+                        _chip(Icons.bathroom_outlined, '${rumah.kamarMandi} KM'),
+                        const SizedBox(width: 6),
+                        _chip(
+                          Icons.straighten_outlined,
+                          '${rumah.luasBangunan}m²',
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

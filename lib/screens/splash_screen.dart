@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'login_screen.dart';
-import 'home_screen.dart';
+import 'admin/admin_dashboard_screen.dart';
+import 'user/home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -47,15 +48,22 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final hasToken = await authProvider.tryAutoLogin();
+    final hasTokenAndUser = await authProvider.tryAutoLogin();
 
     if (!mounted) return;
 
-    if (hasToken) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-      );
+    if (hasTokenAndUser) {
+      if (authProvider.user?.role == 'admin') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        );
+      }
     } else {
       Navigator.pushReplacement(
         context,

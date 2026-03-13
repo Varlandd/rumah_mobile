@@ -80,10 +80,74 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Check apakah user sudah login (cek token di storage)
+  Future<bool> updateProfile({
+    required String name,
+    required String email,
+    String? phone,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    final result = await _api.updateProfile(
+      name: name,
+      email: email,
+      phone: phone,
+    );
+
+    _isLoading = false;
+
+    if (result['success']) {
+      _user = result['user'];
+      notifyListeners();
+      return true;
+    } else {
+      _errorMessage = result['message'];
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> updatePassword({
+    required String currentPassword,
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    final result = await _api.updatePassword(
+      currentPassword: currentPassword,
+      password: password,
+      passwordConfirmation: passwordConfirmation,
+    );
+
+    _isLoading = false;
+
+    if (result['success']) {
+      notifyListeners();
+      return true;
+    } else {
+      _errorMessage = result['message'];
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Check apakah user sudah login (cek token di storage) dan ambil datanya
   Future<bool> tryAutoLogin() async {
     final token = await _api.getToken();
-    return token != null;
+    if (token == null) return false;
+
+    final userProfile = await _api.getProfile();
+    if (userProfile != null) {
+      _user = userProfile;
+      notifyListeners();
+      return true;
+    }
+
+    return false;
   }
 
   void clearError() {
