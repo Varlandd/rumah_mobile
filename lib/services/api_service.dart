@@ -17,7 +17,8 @@ class ApiService {
     if (foto == null) return '';
     if (foto.startsWith('http')) return foto;
     final base = baseUrl.replaceAll('/api', '');
-    return '$base$foto';
+    final path = foto.startsWith('/') ? foto : '/$foto';
+    return '$base$path';
   }
 
   final storage = const FlutterSecureStorage();

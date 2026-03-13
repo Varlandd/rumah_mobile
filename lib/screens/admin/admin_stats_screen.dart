@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/admin_provider.dart';
+import '../../services/api_service.dart';
 
 class AdminStatsScreen extends StatefulWidget {
   const AdminStatsScreen({super.key});
@@ -118,7 +119,9 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
                                   ? ClipRRect(
                                       borderRadius: BorderRadius.circular(8),
                                       child: Image.network(
-                                        'http://192.168.1.22:8000/${r['foto']}', // temporary hardcoded based on url
+                                        ApiService.getImageUrl(
+                                          r['foto']?.toString(),
+                                        ), // temporary hardcoded based on url
                                         fit: BoxFit.cover,
                                         errorBuilder: (_, __, ___) => const Icon(Icons.home, color: Colors.white54),
                                       )

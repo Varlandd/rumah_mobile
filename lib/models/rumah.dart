@@ -1,3 +1,5 @@
+import '../services/api_service.dart';
+
 class Rumah {
   final int id;
   final String nama;
@@ -44,7 +46,7 @@ class Rumah {
       kamarTidur: json['kamar_tidur'],
       kamarMandi: json['kamar_mandi'],
       tipe: json['tipe'],
-      foto: json['foto'],
+      foto: json['foto'] != null ? ApiService.getImageUrl(json['foto']) : null,
       deskripsi: json['deskripsi'],
       fasilitas: json['fasilitas'] != null
           ? (json['fasilitas'] as List)
