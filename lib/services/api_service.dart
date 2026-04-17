@@ -9,9 +9,9 @@ class ApiService {
   // UNTUK EMULATOR: http://10.0.2.2:8000/api
   // UNTUK HP FISIK (WiFi sama): http://192.168.x.x:8000/api (ganti IP komputer Anda)
   // static const String baseUrl = 'http://10.114.170.50:8000/api';
-  // static const String baseUrl = 'http://192.168.1.6:8000/api';
+  static const String baseUrl = 'http://192.168.1.7:8000/api';
   // static const String baseUrl = 'http://10.10.186.218:8000/api';
-  static const String baseUrl = 'http://192.168.1.22:8000/api';
+  // static const String baseUrl = 'http://127.0.0.1:8000/api';
 
   static String getImageUrl(String? foto) {
     if (foto == null) return '';
@@ -24,7 +24,17 @@ class ApiService {
   final storage = const FlutterSecureStorage();
 
   Future<String?> getToken() async {
-    return await storage.read(key: 'auth_token');
+    print("API: getToken started");
+    try {
+      final token = await storage
+          .read(key: 'auth_token')
+          .timeout(const Duration(seconds: 3));
+      print("API: storage.read completed");
+      return token;
+    } catch (e) {
+      print("API: getToken caught error: $e");
+      return null;
+    }
   }
 
   Future<Map<String, String>> getHeaders({bool needsAuth = false}) async {
@@ -119,18 +129,26 @@ class ApiService {
   }
 
   Future<User?> getProfile() async {
+    print("API: getProfile started");
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/user'),
-        headers: await getHeaders(needsAuth: true),
-      );
+      print("API: getProfile making request to $baseUrl/user");
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/user'),
+            headers: await getHeaders(needsAuth: true),
+          )
+          .timeout(const Duration(seconds: 8));
 
+      print("API: getProfile received response ${response.statusCode}");
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return User.fromJson(data['data']); // Adjusted because my Laravel API returns ['data' => $user]
+        return User.fromJson(
+          data['data'],
+        ); // Adjusted because my Laravel API returns ['data' => $user]
       }
       return null;
     } catch (e) {
+      print("API: getProfile caught error: $e");
       return null;
     }
   }
@@ -144,18 +162,17 @@ class ApiService {
       final response = await http.put(
         Uri.parse('$baseUrl/user/profile'),
         headers: await getHeaders(needsAuth: true),
-        body: jsonEncode({
-          'name': name,
-          'email': email,
-          'phone': phone,
-        }),
+        body: jsonEncode({'name': name, 'email': email, 'phone': phone}),
       );
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200 && data['success']) {
         return {'success': true, 'user': User.fromJson(data['data'])};
       }
-      return {'success': false, 'message': data['message'] ?? 'Gagal update profil'};
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal update profil',
+      };
     } catch (e) {
       return {'success': false, 'message': 'Error: $e'};
     }
@@ -181,7 +198,10 @@ class ApiService {
       if (response.statusCode == 200 && data['success']) {
         return {'success': true};
       }
-      return {'success': false, 'message': data['message'] ?? 'Gagal update password'};
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal update password',
+      };
     } catch (e) {
       return {'success': false, 'message': 'Error: $e'};
     }
@@ -210,7 +230,7 @@ class ApiService {
     }
   }
 
-  Future<Rumah?> getRumahDetail(int id) async {
+  Future<Rumah?> getRumahDetail(String id) async {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/rumah/$id'),
@@ -234,7 +254,7 @@ class ApiService {
     int? budgetMin,
     int? budgetMax,
     String? tipe,
-    List<int>? fasilitas,
+    List<String>? fasilitas,
   }) async {
     try {
       Map<String, dynamic> body = {};
@@ -319,7 +339,7 @@ class ApiService {
     }
   }
 
-  Future<bool> toggleFavorit(int rumahId) async {
+  Future<bool> toggleFavorit(String rumahId) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/favorit/$rumahId'),

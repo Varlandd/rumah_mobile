@@ -1,7 +1,7 @@
 import '../services/api_service.dart';
 
 class Rumah {
-  final int id;
+  final String id;
   final String nama;
   final String lokasi;
   final int harga;
@@ -37,31 +37,31 @@ class Rumah {
 
   factory Rumah.fromJson(Map<String, dynamic> json) {
     return Rumah(
-      id: json['id'],
-      nama: json['nama'],
-      lokasi: json['lokasi'],
-      harga: json['harga'],
-      luasTanah: json['luas_tanah'],
-      luasBangunan: json['luas_bangunan'],
-      kamarTidur: json['kamar_tidur'],
-      kamarMandi: json['kamar_mandi'],
-      tipe: json['tipe'],
+      id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
+      nama: json['nama']?.toString() ?? '',
+      lokasi: json['lokasi']?.toString() ?? '',
+      harga: (json['harga'] is int) ? json['harga'] : int.tryParse(json['harga']?.toString() ?? '0') ?? 0,
+      luasTanah: (json['luas_tanah'] is int) ? json['luas_tanah'] : int.tryParse(json['luas_tanah']?.toString() ?? '0') ?? 0,
+      luasBangunan: (json['luas_bangunan'] is int) ? json['luas_bangunan'] : int.tryParse(json['luas_bangunan']?.toString() ?? '0') ?? 0,
+      kamarTidur: (json['kamar_tidur'] is int) ? json['kamar_tidur'] : int.tryParse(json['kamar_tidur']?.toString() ?? '0') ?? 0,
+      kamarMandi: (json['kamar_mandi'] is int) ? json['kamar_mandi'] : int.tryParse(json['kamar_mandi']?.toString() ?? '0') ?? 0,
+      tipe: json['tipe']?.toString() ?? '',
       foto: json['foto'] != null ? ApiService.getImageUrl(json['foto']) : null,
-      deskripsi: json['deskripsi'],
+      deskripsi: json['deskripsi']?.toString(),
       fasilitas: json['fasilitas'] != null
           ? (json['fasilitas'] as List)
-              .map((f) => Fasilitas.fromJson(f))
+              .map((f) => Fasilitas.fromJson(f is Map<String, dynamic> ? f : {'nama': f.toString()}))
               .toList()
           : null,
       skor: json['skor']?.toDouble(),
-      rank: json['rank'],
+      rank: json['rank'] is int ? json['rank'] : int.tryParse(json['rank']?.toString() ?? ''),
       isFavorit: json['is_favorit'],
     );
   }
 }
 
 class Fasilitas {
-  final int id;
+  final String id;
   final String nama;
 
   Fasilitas({
@@ -71,8 +71,9 @@ class Fasilitas {
 
   factory Fasilitas.fromJson(Map<String, dynamic> json) {
     return Fasilitas(
-      id: json['id'],
+      id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
       nama: json['nama'],
     );
   }
 }
+

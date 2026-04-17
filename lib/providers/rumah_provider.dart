@@ -41,7 +41,7 @@ class RumahProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> fetchRumahDetail(int id) async {
+  Future<void> fetchRumahDetail(String id) async {
     _isLoading = true;
     notifyListeners();
 
@@ -56,7 +56,7 @@ class RumahProvider extends ChangeNotifier {
     int? budgetMin,
     int? budgetMax,
     String? tipe,
-    List<int>? fasilitas,
+    List<String>? fasilitas,
   }) async {
     _isLoading = true;
     notifyListeners();
@@ -107,7 +107,7 @@ class RumahProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> toggleFavorit(int rumahId) async {
+  Future<bool> toggleFavorit(String rumahId) async {
     final success = await _api.toggleFavorit(rumahId);
     if (success) {
       await fetchFavorit(); // Refresh favorit list

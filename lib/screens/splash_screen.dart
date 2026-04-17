@@ -45,26 +45,32 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _checkAuthAndNavigate() async {
+    print("SPLASH: _checkAuthAndNavigate started");
     if (!mounted) return;
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    print("SPLASH: calling tryAutoLogin");
     final hasTokenAndUser = await authProvider.tryAutoLogin();
+    print("SPLASH: tryAutoLogin returned $hasTokenAndUser");
 
     if (!mounted) return;
 
     if (hasTokenAndUser) {
       if (authProvider.user?.role == 'admin') {
+        print("SPLASH: navigating to Admin");
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
         );
       } else {
+        print("SPLASH: navigating to Home");
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const HomeScreen()),
         );
       }
     } else {
+      print("SPLASH: navigating to Login");
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const LoginScreen()),

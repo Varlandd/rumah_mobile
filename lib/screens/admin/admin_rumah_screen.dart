@@ -21,7 +21,7 @@ class _AdminRumahScreenState extends State<AdminRumahScreen> {
     );
   }
 
-  void _confirmDelete(int id, String nama) {
+  void _confirmDelete(String id, String nama) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -41,7 +41,7 @@ class _AdminRumahScreenState extends State<AdminRumahScreen> {
     );
   }
 
-  void _deleteRumah(int id) async {
+  void _deleteRumah(String id) async {
     final success = await context.read<AdminProvider>().deleteRumah(id);
     if (!mounted) return;
     if (success) {

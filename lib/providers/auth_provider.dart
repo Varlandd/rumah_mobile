@@ -137,10 +137,14 @@ class AuthProvider extends ChangeNotifier {
 
   /// Check apakah user sudah login (cek token di storage) dan ambil datanya
   Future<bool> tryAutoLogin() async {
+    print("AUTH: tryAutoLogin started");
     final token = await _api.getToken();
+    print("AUTH: getToken returned: $token");
     if (token == null) return false;
 
+    print("AUTH: calling getProfile");
     final userProfile = await _api.getProfile();
+    print("AUTH: getProfile returned: $userProfile");
     if (userProfile != null) {
       _user = userProfile;
       notifyListeners();

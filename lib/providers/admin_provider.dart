@@ -62,7 +62,7 @@ class AdminProvider extends ChangeNotifier {
     _setLoading(false);
   }
 
-  Future<bool> updateUserRole(int userId, String role) async {
+  Future<bool> updateUserRole(String userId, String role) async {
     _setLoading(true);
     try {
       final response = await http.put(
@@ -88,7 +88,7 @@ class AdminProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> deleteUser(int userId) async {
+  Future<bool> deleteUser(String userId) async {
     _setLoading(true);
     try {
       final response = await http.delete(
@@ -141,7 +141,7 @@ class AdminProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> updateRumah(int id, Map<String, String> fields, {String? imagePath}) async {
+  Future<bool> updateRumah(String id, Map<String, String> fields, {String? imagePath}) async {
     _setLoading(true);
     try {
       var request = http.MultipartRequest(
@@ -174,7 +174,7 @@ class AdminProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> deleteRumah(int id) async {
+  Future<bool> deleteRumah(String id) async {
     _setLoading(true);
     try {
       final response = await http.delete(

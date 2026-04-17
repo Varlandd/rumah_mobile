@@ -8,6 +8,10 @@ import 'detail_rumah_screen.dart';
 import 'search_screen.dart';
 import 'favorit_screen.dart';
 import 'profile_edit_screen.dart';
+import 'kalkulator_screen.dart';
+import 'prediksi_screen.dart';
+import 'rekomendasi_screen.dart';
+import 'bandingkan_screen.dart';
 import '../../services/api_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -63,46 +67,16 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
 
+    final List<Widget> pages = [
+      _buildBeranda(auth),
+      const SearchScreen(),
+      const FavoritScreen(),
+      _buildProfil(auth),
+    ];
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        title: Row(
-          children: [
-            const Icon(Icons.home_rounded, color: Colors.white, size: 24),
-            const SizedBox(width: 8),
-            const Text('RumahKu'),
-          ],
-        ),
-        backgroundColor: const Color(0xFF0f766e),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search, color: Colors.white),
-            tooltip: 'Cari',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SearchScreen()),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.favorite, color: Colors.white),
-            tooltip: 'Favorit',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const FavoritScreen()),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white),
-            tooltip: 'Keluar',
-            onPressed: _logout,
-          ),
-        ],
-      ),
-      body: _selectedIndex == 0 ? _buildBeranda(auth) : _buildProfil(auth),
+      body: pages[_selectedIndex],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (i) => setState(() => _selectedIndex = i),
@@ -111,6 +85,16 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home),
             label: 'Beranda',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.search_outlined),
+            selectedIcon: Icon(Icons.search),
+            label: 'Cari',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.favorite_outline),
+            selectedIcon: Icon(Icons.favorite),
+            label: 'Favorit',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outlined),
@@ -125,7 +109,27 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildBeranda(AuthProvider auth) {
     final rumahProvider = context.watch<RumahProvider>();
 
-    return RefreshIndicator(
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
+      appBar: AppBar(
+        title: const Row(
+          children: [
+            Icon(Icons.home_rounded, color: Colors.white, size: 24),
+            SizedBox(width: 8),
+            Text('RumahKu'),
+          ],
+        ),
+        backgroundColor: const Color(0xFF0f766e),
+        foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.white),
+            tooltip: 'Keluar',
+            onPressed: _logout,
+          ),
+        ],
+      ),
+      body: RefreshIndicator(
       onRefresh: () => rumahProvider.fetchRumah(),
       child: CustomScrollView(
         slivers: [
@@ -159,6 +163,71 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: Colors.white.withOpacity(0.8),
                       fontSize: 14,
                     ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+          // ── Quick Actions ──
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Fitur Utama',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1a1a1a)),
+                  ),
+                  const SizedBox(height: 12),
+                  GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: 3,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    childAspectRatio: 0.85,
+                    children: [
+                      _quickAction(
+                        icon: Icons.auto_graph_rounded,
+                        label: 'Prediksi\nHarga',
+                        color: const Color(0xFF6366f1),
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrediksiScreen())),
+                      ),
+                      _quickAction(
+                        icon: Icons.stars_rounded,
+                        label: 'Rekomen-\ndasi',
+                        color: const Color(0xFFf59e0b),
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RekomendasiScreen())),
+                      ),
+                      _quickAction(
+                        icon: Icons.compare_arrows_rounded,
+                        label: 'Bandingan\nProperti',
+                        color: const Color(0xFF10b981),
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BandingkanScreen())),
+                      ),
+                      _quickAction(
+                        icon: Icons.calculate_rounded,
+                        label: 'Kalkulator\nBudget',
+                        color: const Color(0xFFec4899),
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const KalkulatorScreen())),
+                      ),
+                      _quickAction(
+                        icon: Icons.favorite_rounded,
+                        label: 'Favorit\nSaya',
+                        color: const Color(0xFFef4444),
+                        onTap: () => setState(() => _selectedIndex = 2),
+                      ),
+                      _quickAction(
+                        icon: Icons.search_rounded,
+                        label: 'Cari\nProperti',
+                        color: const Color(0xFF3b82f6),
+                        onTap: () => setState(() => _selectedIndex = 1),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -231,13 +300,62 @@ class _HomeScreenState extends State<HomeScreen> {
           const SliverToBoxAdapter(child: SizedBox(height: 20)),
         ],
       ),
+      ),
+    );
+  }
+
+  Widget _quickAction({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      elevation: 1,
+      shadowColor: Colors.black12,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF374151)),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
   Widget _buildProfil(AuthProvider auth) {
     final user = auth.user;
-    return ListView(
-      padding: const EdgeInsets.all(20),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
+      appBar: AppBar(
+        title: const Text('Profil Saya'),
+        backgroundColor: const Color(0xFF0f766e),
+        foregroundColor: Colors.white,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
       children: [
         // Avatar
         Center(
@@ -321,6 +439,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ],
+      ),
     );
   }
 
@@ -398,7 +517,7 @@ class _RumahCard extends StatelessWidget {
                             size: 36,
                             color: Color(0xFF0f766e),
                           ),
-                        )
+                        ),
                       )
                     : const Icon(
                         Icons.home_outlined,

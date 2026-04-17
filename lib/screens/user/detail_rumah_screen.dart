@@ -5,7 +5,7 @@ import '../../models/rumah.dart';
 import 'kalkulator_screen.dart';
 
 class DetailRumahScreen extends StatefulWidget {
-  final int rumahId;
+  final String rumahId;
   final String namaRumah;
 
   const DetailRumahScreen({

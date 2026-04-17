@@ -18,7 +18,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     );
   }
 
-  void _showRoleDialog(int userId, String currentRole) {
+  void _showRoleDialog(String userId, String currentRole) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -54,7 +54,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     );
   }
 
-  void _changeRole(int userId, String newRole) async {
+  void _changeRole(String userId, String newRole) async {
     final success = await context.read<AdminProvider>().updateUserRole(userId, newRole);
     if (!mounted) return;
     if (success) {
@@ -69,7 +69,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     }
   }
 
-  void _confirmDelete(int userId, String name) {
+  void _confirmDelete(String userId, String name) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -89,7 +89,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     );
   }
 
-  void _deleteUser(int userId) async {
+  void _deleteUser(String userId) async {
     final success = await context.read<AdminProvider>().deleteUser(userId);
     if (!mounted) return;
     if (success) {
