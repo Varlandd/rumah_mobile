@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/rumah_provider.dart';
 import '../../models/rumah.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'kalkulator_screen.dart';
 
 class DetailRumahScreen extends StatefulWidget {
@@ -190,7 +191,7 @@ class _DetailRumahScreenState extends State<DetailRumahScreen> {
                   // Location
                   Row(
                     children: [
-                      const Icon(Icons.location_on, color: Colors.grey, size: 20),
+                      const Icon(Icons.location_on, color: Color(0xFF0f766e), size: 20),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
@@ -199,6 +200,23 @@ class _DetailRumahScreenState extends State<DetailRumahScreen> {
                             fontSize: 15,
                             color: Colors.grey,
                           ),
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: () async {
+                          final query = Uri.encodeComponent('${rumah.nama} ${rumah.lokasi}');
+                          final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$query');
+                          if (await canLaunchUrl(url)) {
+                            await launchUrl(url, mode: LaunchMode.externalApplication);
+                          }
+                        },
+                        icon: const Icon(Icons.map_outlined, size: 16),
+                        label: const Text('Buka Peta', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF0f766e),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          backgroundColor: const Color(0xFF0f766e).withOpacity(0.05),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         ),
                       ),
                     ],

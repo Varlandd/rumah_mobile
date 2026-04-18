@@ -13,7 +13,7 @@ class Rumah {
   final String? foto;
   final String? deskripsi;
   final List<Fasilitas>? fasilitas;
-  final double? skor;
+  final double? score;
   final int? rank;
   final bool? isFavorit;
 
@@ -30,7 +30,7 @@ class Rumah {
     this.foto,
     this.deskripsi,
     this.fasilitas,
-    this.skor,
+    this.score,
     this.rank,
     this.isFavorit,
   });
@@ -53,7 +53,7 @@ class Rumah {
               .map((f) => Fasilitas.fromJson(f is Map<String, dynamic> ? f : {'nama': f.toString()}))
               .toList()
           : null,
-      skor: json['skor']?.toDouble(),
+      score: (json['score'] as num?)?.toDouble(),
       rank: json['rank'] is int ? json['rank'] : int.tryParse(json['rank']?.toString() ?? ''),
       isFavorit: json['is_favorit'],
     );

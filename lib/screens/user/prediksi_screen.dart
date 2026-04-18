@@ -26,20 +26,18 @@ class _PrediksiScreenState extends State<PrediksiScreen> {
   double? _maxPrice;
   String? _error;
 
-  final _lokasiList = [
-    'Jakarta Pusat', 'Jakarta Selatan', 'Jakarta Barat',
-    'Jakarta Timur', 'Jakarta Utara', 'Bogor',
-    'Depok', 'Tangerang', 'Tangerang Selatan', 'Bekasi',
-  ];
+  List<String> _lokasiList = [];
 
-  // Average price per m2 for fallback
-  final _avgPerM2 = {
-    'Jakarta Pusat': 25000000, 'Jakarta Selatan': 22000000,
-    'Jakarta Barat': 18000000, 'Jakarta Timur': 15000000,
-    'Jakarta Utara': 16000000, 'Bogor': 8000000,
-    'Depok': 10000000, 'Tangerang': 12000000,
-    'Tangerang Selatan': 14000000, 'Bekasi': 9000000,
-  };
+  @override
+  void initState() {
+    super.initState();
+    _loadLokasi();
+  }
+
+  void _loadLokasi() async {
+    final list = await ApiService().getLokasi();
+    if (mounted) setState(() => _lokasiList = list);
+  }
 
   String _formatRp(double value) {
     if (value >= 1000000000) {
@@ -59,64 +57,30 @@ class _PrediksiScreenState extends State<PrediksiScreen> {
       _predictedPrice = null;
     });
 
-    final luasTanah = int.parse(_luasTanahC.text);
-    final luasBangunan = int.parse(_luasBangunanC.text);
-    final kamarTidur = int.parse(_kamarTidurC.text);
-    final kamarMandi = int.parse(_kamarMandiC.text);
-
     try {
-      // Try ML service first
-      final baseUrl = ApiService.baseUrl.replaceAll('/api', '');
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/admin/analitik/predict'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode({
-          'lokasi': _lokasi,
-          'luas_tanah': luasTanah,
-          'luas_bangunan': luasBangunan,
-          'kamar_tidur': kamarTidur,
-          'kamar_mandi': kamarMandi,
-        }),
-      ).timeout(const Duration(seconds: 10));
+      final res = await ApiService().predict(
+        lokasi: _lokasi!,
+        luasTanah: int.parse(_luasTanahC.text),
+        luasBangunan: int.parse(_luasBangunanC.text),
+        kamarTidur: int.parse(_kamarTidurC.text),
+        kamarMandi: int.parse(_kamarMandiC.text),
+      );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['predicted_price'] != null) {
-          final price = (data['predicted_price'] as num).toDouble();
-          setState(() {
-            _predictedPrice = price;
-            _minPrice = price * 0.85;
-            _maxPrice = price * 1.15;
-          });
-          return;
-        }
+      if (res['success'] == true) {
+        final price = (res['data']['predicted_price'] as num).toDouble();
+        setState(() {
+          _predictedPrice = price;
+          _minPrice = price * 0.85;
+          _maxPrice = price * 1.15;
+        });
+      } else {
+        setState(() => _error = res['message'] ?? 'Gagal memproses prediksi');
       }
-      // If ML fails, use fallback
-      _fallbackPredict(luasTanah, luasBangunan, kamarTidur, kamarMandi);
     } catch (e) {
-      // ML offline, use fallback
-      _fallbackPredict(luasTanah, luasBangunan, kamarTidur, kamarMandi);
+      setState(() => _error = 'Kesalahan jaringan: $e');
     } finally {
       setState(() => _loading = false);
     }
-  }
-
-  void _fallbackPredict(int lt, int lb, int kt, int km) {
-    final basePerM2 = (_avgPerM2[_lokasi] ?? 12000000).toDouble();
-    double price = lb * basePerM2;
-    price += lt * (basePerM2 * 0.3);
-    price += kt * 50000000;
-    price += km * 30000000;
-
-    setState(() {
-      _predictedPrice = price;
-      _minPrice = price * 0.8;
-      _maxPrice = price * 1.2;
-      _loading = false;
-    });
   }
 
   @override

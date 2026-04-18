@@ -10,8 +10,7 @@ class ApiService {
   // UNTUK HP FISIK (WiFi sama): http://192.168.x.x:8000/api (ganti IP komputer Anda)
   // static const String baseUrl = 'http://10.114.170.50:8000/api';
   static const String baseUrl = 'http://192.168.1.7:8000/api';
-  // static const String baseUrl = 'http://10.10.186.218:8000/api';
-  // static const String baseUrl = 'http://127.0.0.1:8000/api';
+  // static const String baseUrl = 'http://192.168.1.22:8000/api';
 
   static String getImageUrl(String? foto) {
     if (foto == null) return '';
@@ -418,6 +417,71 @@ class ApiService {
         if (data['success']) {
           return (data['data'] as List)
               .map((json) => Fasilitas.fromJson(json))
+              .toList();
+        }
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // ========== ANALITIK (MLR & SAW) ==========
+
+  Future<Map<String, dynamic>> predict({
+    required String lokasi,
+    required int luasTanah,
+    required int luasBangunan,
+    required int kamarTidur,
+    required int kamarMandi,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/predict'),
+        headers: await getHeaders(needsAuth: true),
+        body: jsonEncode({
+          'lokasi': lokasi,
+          'luas_tanah': luasTanah,
+          'luas_bangunan': luasBangunan,
+          'kamar_tidur': kamarTidur,
+          'kamar_mandi': kamarMandi,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+      return data;
+    } catch (e) {
+      return {'success': false, 'message': 'Terjadi kesalahan jaringan: $e'};
+    }
+  }
+
+  Future<List<Rumah>> recommend({
+    String? lokasi,
+    int? budgetMax,
+    int? wHarga,
+    int? wTanah,
+    int? wBangunan,
+    int? wKamar,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/recommend'),
+        headers: await getHeaders(needsAuth: true),
+        body: jsonEncode({
+          'lokasi': lokasi,
+          'budget_max': budgetMax,
+          'w_harga': wHarga,
+          'w_tanah': wTanah,
+          'w_bangunan': wBangunan,
+          'w_kamar': wKamar,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success']) {
+          return (data['data'] as List)
+              .map((json) => Rumah.fromJson(json))
               .toList();
         }
       }

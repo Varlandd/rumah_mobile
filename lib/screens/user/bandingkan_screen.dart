@@ -225,27 +225,28 @@ class _BandingkanScreenState extends State<BandingkanScreen> {
 
           // Score row
           Container(
-            color: _primary.withOpacity(0.05),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            color: _primary.withOpacity(0.1),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
             child: Row(
               children: [
-                const SizedBox(width: 90, child: Text('⭐ Skor', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12))),
-                ...scores.map((s) {
+                const SizedBox(width: 90, child: Text('🏆 Hasil Akhir', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: _primary))),
+                ...scores.asMap().entries.map((entry) {
+                  final i = entry.key;
+                  final s = entry.value;
+                  final isWinner = s == scores.reduce(max);
                   final pct = (s * 100).round();
+                  
                   return Expanded(
                     child: Column(
                       children: [
-                        Text('$pct', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: _primary)),
+                        if (isWinner) const Icon(Icons.workspace_premium, color: Colors.amber, size: 24),
+                        Text('$pct', style: TextStyle(
+                          fontSize: 22, 
+                          fontWeight: FontWeight.w900, 
+                          color: isWinner ? Colors.amber.shade700 : _primary
+                        )),
                         const SizedBox(height: 4),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: LinearProgressIndicator(
-                            value: s,
-                            backgroundColor: Colors.grey.shade200,
-                            color: _primary,
-                            minHeight: 6,
-                          ),
-                        ),
+                        Text(isWinner ? 'REKOMENDASI' : 'SKOR', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.grey.shade600)),
                       ],
                     ),
                   );

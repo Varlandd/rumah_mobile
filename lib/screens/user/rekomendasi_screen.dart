@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/rumah_provider.dart';
 import '../../models/rumah.dart';
+import '../../services/api_service.dart';
 import 'detail_rumah_screen.dart';
 
 class RekomendasiScreen extends StatefulWidget {
@@ -13,8 +14,9 @@ class RekomendasiScreen extends StatefulWidget {
 }
 
 class _RekomendasiScreenState extends State<RekomendasiScreen> {
+  final _api = ApiService();
   static const _primary = Color(0xFF0f766e);
-
+  
   double _wHarga = 3;
   double _wTanah = 3;
   double _wBangunan = 3;
@@ -23,13 +25,19 @@ class _RekomendasiScreenState extends State<RekomendasiScreen> {
 
   String? _filterLokasi;
   final _budgetC = TextEditingController();
-
   List<_RankedRumah>? _results;
+
+  List<String> _lokasiList = [];
 
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => context.read<RumahProvider>().fetchRumah());
+    _loadLokasi();
+  }
+
+  void _loadLokasi() async {
+    final list = await _api.getLokasi();
+    if (mounted) setState(() => _lokasiList = list);
   }
 
   @override
@@ -38,55 +46,23 @@ class _RekomendasiScreenState extends State<RekomendasiScreen> {
     super.dispose();
   }
 
-  void _calculate() {
-    final allRumah = context.read<RumahProvider>().rumahList;
-    if (allRumah.isEmpty) return;
+  Future<void> _calculate() async {
+    setState(() => _results = null); // Reset results to show loading if needed
 
-    // Filter
-    var data = List<Rumah>.from(allRumah);
-    if (_filterLokasi != null && _filterLokasi!.isNotEmpty) {
-      data = data.where((r) => r.lokasi == _filterLokasi).toList();
-    }
-    final budget = int.tryParse(_budgetC.text) ?? 0;
-    if (budget > 0) {
-      data = data.where((r) => r.harga <= budget).toList();
-    }
+    final int budget = int.tryParse(_budgetC.text) ?? 0;
 
-    if (data.isEmpty) {
-      setState(() => _results = []);
-      return;
-    }
+    final results = await _api.recommend(
+      lokasi: _filterLokasi == '' ? null : _filterLokasi,
+      budgetMax: budget > 0 ? budget : null,
+      wHarga: _wHarga.toInt(),
+      wTanah: _wTanah.toInt(),
+      wBangunan: _wBangunan.toInt(),
+      wKamar: _wKT.toInt(),
+    );
 
-    // Normalize weights
-    final totalW = _wHarga + _wTanah + _wBangunan + _wKT + _wKM;
-    final nwH = _wHarga / totalW;
-    final nwT = _wTanah / totalW;
-    final nwB = _wBangunan / totalW;
-    final nwKT = _wKT / totalW;
-    final nwKM = _wKM / totalW;
-
-    // Find min/max for normalization
-    final minHarga = data.map((r) => r.harga).reduce(min);
-    final maxTanah = data.map((r) => r.luasTanah).reduce(max);
-    final maxBangunan = data.map((r) => r.luasBangunan).reduce(max);
-    final maxKT = data.map((r) => r.kamarTidur).reduce(max);
-    final maxKM = data.map((r) => r.kamarMandi).reduce(max);
-
-    // Calculate SAW score
-    final ranked = data.map((r) {
-      final nHarga = (minHarga > 0 && r.harga > 0) ? minHarga / r.harga : 0.0;
-      final nTanah = maxTanah > 0 ? r.luasTanah / maxTanah : 0.0;
-      final nBangunan = maxBangunan > 0 ? r.luasBangunan / maxBangunan : 0.0;
-      final nKT2 = maxKT > 0 ? r.kamarTidur / maxKT : 0.0;
-      final nKM2 = maxKM > 0 ? r.kamarMandi / maxKM : 0.0;
-
-      final score = (nwH * nHarga) + (nwT * nTanah) + (nwB * nBangunan) + (nwKT * nKT2) + (nwKM * nKM2);
-      return _RankedRumah(rumah: r, score: score);
-    }).toList();
-
-    ranked.sort((a, b) => b.score.compareTo(a.score));
-
-    setState(() => _results = ranked);
+    setState(() {
+      _results = results.map((r) => _RankedRumah(rumah: r, score: r.score ?? 0.0)).toList();
+    });
   }
 
   String _formatHarga(int harga) {
@@ -98,7 +74,6 @@ class _RekomendasiScreenState extends State<RekomendasiScreen> {
   @override
   Widget build(BuildContext context) {
     final rumahProvider = context.watch<RumahProvider>();
-    final lokasiSet = rumahProvider.rumahList.map((r) => r.lokasi).toSet().toList()..sort();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
@@ -169,7 +144,7 @@ class _RekomendasiScreenState extends State<RekomendasiScreen> {
                       ),
                       items: [
                         const DropdownMenuItem(value: '', child: Text('Semua Lokasi')),
-                        ...lokasiSet.map((l) => DropdownMenuItem(value: l, child: Text(l))),
+                        ..._lokasiList.map((l) => DropdownMenuItem(value: l, child: Text(l))),
                       ],
                       onChanged: (v) => setState(() => _filterLokasi = v),
                     ),
