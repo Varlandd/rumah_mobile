@@ -46,7 +46,13 @@ class Rumah {
       kamarTidur: (json['kamar_tidur'] is int) ? json['kamar_tidur'] : int.tryParse(json['kamar_tidur']?.toString() ?? '0') ?? 0,
       kamarMandi: (json['kamar_mandi'] is int) ? json['kamar_mandi'] : int.tryParse(json['kamar_mandi']?.toString() ?? '0') ?? 0,
       tipe: json['tipe']?.toString() ?? '',
-      foto: json['foto'] != null ? ApiService.getImageUrl(json['foto']) : null,
+      foto: json['foto'] != null
+          ? (json['foto'] is List
+              ? ((json['foto'] as List).isNotEmpty
+                  ? ApiService.getImageUrl(json['foto'][0].toString())
+                  : null)
+              : ApiService.getImageUrl(json['foto'].toString()))
+          : null,
       deskripsi: json['deskripsi']?.toString(),
       fasilitas: json['fasilitas'] != null
           ? (json['fasilitas'] as List)
