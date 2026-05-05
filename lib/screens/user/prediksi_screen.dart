@@ -66,15 +66,28 @@ class _PrediksiScreenState extends State<PrediksiScreen> {
         kamarMandi: int.parse(_kamarMandiC.text),
       );
 
-      if (res['success'] == true) {
-        final price = (res['data']['predicted_price'] as num).toDouble();
-        setState(() {
-          _predictedPrice = price;
-          _minPrice = price * 0.85;
-          _maxPrice = price * 1.15;
-        });
+      if (res['success'] == true && res['data'] != null) {
+        // Handle nested data structure from the API
+        final responseData = res['data']['data'] ?? res['data'];
+        
+        if (responseData['prediksi_harga'] != null) {
+          final price = (responseData['prediksi_harga'] as num).toDouble();
+          setState(() {
+            _predictedPrice = price;
+            
+            if (responseData['range_harga'] != null) {
+              _minPrice = (responseData['range_harga']['min'] as num?)?.toDouble() ?? price * 0.85;
+              _maxPrice = (responseData['range_harga']['max'] as num?)?.toDouble() ?? price * 1.15;
+            } else {
+              _minPrice = price * 0.85;
+              _maxPrice = price * 1.15;
+            }
+          });
+        } else {
+          setState(() => _error = 'Format data prediksi tidak dikenali dari server');
+        }
       } else {
-        setState(() => _error = res['message'] ?? 'Gagal memproses prediksi');
+        setState(() => _error = res['message']?.toString() ?? 'Gagal memproses prediksi');
       }
     } catch (e) {
       setState(() => _error = 'Kesalahan jaringan: $e');

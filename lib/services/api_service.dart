@@ -472,7 +472,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/predict'),
-        headers: await getHeaders(needsAuth: true),
+        headers: await getHeaders(needsAuth: false),
         body: jsonEncode({
           'lokasi': lokasi,
           'luas_tanah': luasTanah,
@@ -482,9 +482,13 @@ class ApiService {
         }),
       );
 
+      print("API: predict status: ${response.statusCode}");
+      print("API: predict body: ${response.body}");
+
       final data = jsonDecode(response.body);
       return data;
     } catch (e) {
+      print("API ERROR predict: $e");
       return {'success': false, 'message': 'Terjadi kesalahan jaringan: $e'};
     }
   }
@@ -500,7 +504,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/recommend'),
-        headers: await getHeaders(needsAuth: true),
+        headers: await getHeaders(needsAuth: false),
         body: jsonEncode({
           'lokasi': lokasi,
           'budget_max': budgetMax,
