@@ -573,12 +573,21 @@ class _RumahCard extends StatelessWidget {
                       color: const Color(0xFF0f766e).withOpacity(0.05),
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: rumah.foto != null
+                    child: rumah.foto != null && rumah.foto!.isNotEmpty
                         ? ClipRRect(
                             borderRadius: BorderRadius.circular(16),
                             child: Image.network(
-                              ApiService.getImageUrl(rumah.foto),
+                              rumah.foto!,
                               fit: BoxFit.cover,
+                              loadingBuilder: (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return const Center(
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Color(0xFF0f766e),
+                                  ),
+                                );
+                              },
                               errorBuilder: (_, __, ___) => const Icon(
                                 Icons.home_rounded,
                                 size: 40,

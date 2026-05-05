@@ -14,11 +14,23 @@ class ApiService {
       : 'http://10.10.186.109:8000/api';
 
   static String getImageUrl(String? foto) {
-    if (foto == null) return '';
-    if (foto.startsWith('http')) return foto;
-    final base = baseUrl.replaceAll('/api', '');
-    final path = foto.startsWith('/') ? foto : '/$foto';
-    return '$base$path';
+    if (foto == null || foto.isEmpty) return '';
+    
+    // If it's already a full external URL, proxy it through our server
+    // to bypass CORS restrictions in Flutter Web
+    if (foto.startsWith('http') && !foto.contains('127.0.0.1') && !foto.contains('localhost') && !foto.contains('10.')) {
+      final base = baseUrl.replaceAll('/api', '');
+      return '$base/api/image-proxy?url=${Uri.encodeComponent(foto)}';
+    }
+    
+    // If it's a relative path, prepend our server base
+    if (!foto.startsWith('http')) {
+      final base = baseUrl.replaceAll('/api', '');
+      final path = foto.startsWith('/') ? foto : '/$foto';
+      return '$base$path';
+    }
+    
+    return foto;
   }
 
   final storage = const FlutterSecureStorage();
