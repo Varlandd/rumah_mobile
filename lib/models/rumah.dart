@@ -46,13 +46,7 @@ class Rumah {
       kamarTidur: (json['kamar_tidur'] is int) ? json['kamar_tidur'] : int.tryParse(json['kamar_tidur']?.toString() ?? '0') ?? 0,
       kamarMandi: (json['kamar_mandi'] is int) ? json['kamar_mandi'] : int.tryParse(json['kamar_mandi']?.toString() ?? '0') ?? 0,
       tipe: json['tipe']?.toString() ?? '',
-      foto: json['foto'] != null
-          ? (json['foto'] is List
-              ? ((json['foto'] as List).isNotEmpty
-                  ? ApiService.getImageUrl(json['foto'][0].toString())
-                  : null)
-              : ApiService.getImageUrl(json['foto'].toString()))
-          : null,
+      foto: _extractFotoUrl(json['foto']),
       deskripsi: json['deskripsi']?.toString(),
       fasilitas: json['fasilitas'] != null
           ? (json['fasilitas'] as List)
@@ -63,6 +57,33 @@ class Rumah {
       rank: json['rank'] is int ? json['rank'] : int.tryParse(json['rank']?.toString() ?? ''),
       isFavorit: json['is_favorit'],
     );
+  }
+
+  /// Extract first valid foto URL from API response.
+  /// API returns foto as: List<String> (may include empty strings), String, or null.
+  static String? _extractFotoUrl(dynamic fotoData) {
+    if (fotoData == null) return null;
+
+    String? rawUrl;
+
+    if (fotoData is List) {
+      // Filter out empty strings and get first valid URL
+      for (var item in fotoData) {
+        final url = item?.toString() ?? '';
+        if (url.isNotEmpty) {
+          rawUrl = url;
+          break;
+        }
+      }
+    } else if (fotoData is String && fotoData.isNotEmpty) {
+      rawUrl = fotoData;
+    }
+
+    if (rawUrl == null) return null;
+
+    // Route through image proxy for CORS support
+    final proxied = ApiService.getImageUrl(rawUrl);
+    return proxied.isNotEmpty ? proxied : null;
   }
 }
 
