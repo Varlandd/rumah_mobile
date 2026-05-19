@@ -16,6 +16,8 @@ class Rumah {
   final double? score;
   final int? rank;
   final bool? isFavorit;
+  final double? latitude;
+  final double? longitude;
 
   Rumah({
     required this.id,
@@ -33,6 +35,8 @@ class Rumah {
     this.score,
     this.rank,
     this.isFavorit,
+    this.latitude,
+    this.longitude,
   });
 
   factory Rumah.fromJson(Map<String, dynamic> json) {
@@ -56,6 +60,8 @@ class Rumah {
       score: (json['score'] as num?)?.toDouble(),
       rank: json['rank'] is int ? json['rank'] : int.tryParse(json['rank']?.toString() ?? ''),
       isFavorit: json['is_favorit'],
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
     );
   }
 }

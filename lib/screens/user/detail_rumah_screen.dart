@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import '../../providers/rumah_provider.dart';
 import '../../models/rumah.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -274,6 +276,49 @@ class _DetailRumahScreenState extends State<DetailRumahScreen> {
                       height: 1.5,
                     ),
                   ),
+
+                  // Peta Lokasi
+                  if (rumah.latitude != null && rumah.longitude != null) ...[
+                    const Text(
+                      'Lokasi di Peta',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: SizedBox(
+                        height: 220,
+                        child: FlutterMap(
+                          options: MapOptions(
+                            initialCenter: LatLng(rumah.latitude!, rumah.longitude!),
+                            initialZoom: 15,
+                          ),
+                          children: [
+                            TileLayer(
+                              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                              userAgentPackageName: 'com.example.app',
+                            ),
+                            MarkerLayer(
+                              markers: [
+                                Marker(
+                                  point: LatLng(rumah.latitude!, rumah.longitude!),
+                                  child: const Icon(
+                                    Icons.location_pin,
+                                    color: Colors.red,
+                                    size: 40,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
 
                   const SizedBox(height: 24),
 
