@@ -5,6 +5,8 @@ import 'providers/auth_provider.dart';
 import 'providers/rumah_provider.dart';
 import 'providers/admin_provider.dart';
 import 'screens/splash_screen.dart';
+import 'screens/splash_screen.dart';
+import 'screens/user/home_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -19,7 +21,9 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => RumahProvider()),
-        ChangeNotifierProvider(create: (_) => AdminProvider()), // Added this provider
+        ChangeNotifierProvider(
+          create: (_) => AdminProvider(),
+        ), // Added this provider
       ],
       child: MaterialApp(
         title: 'RumahKu',
@@ -47,4 +51,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-  
