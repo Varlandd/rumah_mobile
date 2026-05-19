@@ -1,23 +1,43 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../models/user.dart';
 import '../models/rumah.dart';
 import '../models/budget_result.dart';
 
 class ApiService {
   // UNTUK EMULATOR: http://10.0.2.2:8000/api
+<<<<<<< HEAD
   // UNTUK HP FISIK (WiFi sama): http://192.168.x.x:8000/api (ganti IP komputer Anda)
   // static const String baseUrl = 'http://10.114.170.50:8000/api';
   static const String baseUrl = 'http://10.205.90.114:8000/api';
   // static const String baseUrl = 'http://192.168.1.22:8000/api';
+=======
+  // UNTUK HP FISIK: http://192.168.x.x:8000/api
+  static const String baseUrl = kIsWeb 
+      ? 'http://127.0.0.1:8000/api' 
+      : 'http://10.10.186.109:8000/api';
+>>>>>>> 279f0d89b0f010a9e15a2577032717fd85a5285b
 
   static String getImageUrl(String? foto) {
-    if (foto == null) return '';
-    if (foto.startsWith('http')) return foto;
-    final base = baseUrl.replaceAll('/api', '');
-    final path = foto.startsWith('/') ? foto : '/$foto';
-    return '$base$path';
+    if (foto == null || foto.isEmpty) return '';
+    
+    // If it's already a full external URL, proxy it through our server
+    // to bypass CORS restrictions in Flutter Web
+    if (foto.startsWith('http') && !foto.contains('127.0.0.1') && !foto.contains('localhost') && !foto.contains('10.')) {
+      final base = baseUrl.replaceAll('/api', '');
+      return '$base/api/image-proxy?url=${Uri.encodeComponent(foto)}';
+    }
+    
+    // If it's a relative path, prepend our server base
+    if (!foto.startsWith('http')) {
+      final base = baseUrl.replaceAll('/api', '');
+      final path = foto.startsWith('/') ? foto : '/$foto';
+      return '$base$path';
+    }
+    
+    return foto;
   }
 
   final storage = const FlutterSecureStorage();
@@ -44,11 +64,12 @@ class ApiService {
 
     if (needsAuth) {
       String? token = await getToken();
+      print("API: getHeaders - token found: ${token != null}");
       if (token != null) {
         headers['Authorization'] = 'Bearer $token';
       }
     }
-
+    print("API: Request Headers: $headers");
     return headers;
   }
 
@@ -212,19 +233,38 @@ class ApiService {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/rumah?page=$page&per_page=$perPage'),
-        headers: await getHeaders(needsAuth: true),
-      );
+        headers: await getHeaders(needsAuth: false),
+      ).timeout(const Duration(seconds: 10));
+
+      print("API: getRumah URL: ${baseUrl}/rumah");
+      print("API: getRumah status ${response.statusCode}");
+      print("API: getRumah body: ${response.body}");
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        if (data['success']) {
+
+        // CASE 1: Laravel Paginate { success: true, data: { data: [...] } }
+        if (data['data'] is Map && data['data']['data'] is List) {
           return (data['data']['data'] as List)
               .map((json) => Rumah.fromJson(json))
               .toList();
         }
+
+        // CASE 2: { success: true, data: [...] }
+        if (data['data'] is List) {
+          return (data['data'] as List)
+              .map((json) => Rumah.fromJson(json))
+              .toList();
+        }
+
+        // CASE 3: langsung array
+        if (data is List) {
+          return data.map((json) => Rumah.fromJson(json)).toList();
+        }
       }
       return [];
     } catch (e) {
+      print("API ERROR getRumah: $e");
       return [];
     }
   }
@@ -369,7 +409,7 @@ class ApiService {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/stats'),
-        headers: await getHeaders(),
+       headers: await getHeaders(),
       );
 
       if (response.statusCode == 200) {
@@ -401,6 +441,7 @@ class ApiService {
       }
       return [];
     } catch (e) {
+      print("API ERROR getLokasi: $e");
       return [];
     }
   }
@@ -438,7 +479,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/predict'),
-        headers: await getHeaders(needsAuth: true),
+        headers: await getHeaders(needsAuth: false),
         body: jsonEncode({
           'lokasi': lokasi,
           'luas_tanah': luasTanah,
@@ -448,9 +489,13 @@ class ApiService {
         }),
       );
 
+      print("API: predict status: ${response.statusCode}");
+      print("API: predict body: ${response.body}");
+
       final data = jsonDecode(response.body);
       return data;
     } catch (e) {
+      print("API ERROR predict: $e");
       return {'success': false, 'message': 'Terjadi kesalahan jaringan: $e'};
     }
   }
@@ -466,7 +511,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/recommend'),
-        headers: await getHeaders(needsAuth: true),
+        headers: await getHeaders(needsAuth: false),
         body: jsonEncode({
           'lokasi': lokasi,
           'budget_max': budgetMax,
