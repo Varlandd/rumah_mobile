@@ -9,10 +9,8 @@ import 'search_screen.dart';
 import 'favorit_screen.dart';
 import 'profile_edit_screen.dart';
 import 'kalkulator_screen.dart';
-import 'prediksi_screen.dart';
 import 'rekomendasi_screen.dart';
-import 'bandingkan_screen.dart';
-import 'wizard_screen.dart';
+import 'rekomendasi_finansial_screen.dart';
 import '../../services/api_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -181,48 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
           
           const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
-          // ── WIZARD BANNER ──
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [Color(0xFF0f766e), Color(0xFF14b8a6)]),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [BoxShadow(color: const Color(0xFF0f766e).withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))],
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Temukan Rumah Impian', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 4),
-                          const Text('Cari sesuai budget & kriteria dalam 4 langkah mudah.', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WizardScreen())),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: const Color(0xFF0f766e),
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            ),
-                            child: const Text('Mulai Sekarang', style: TextStyle(fontWeight: FontWeight.bold)),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(Icons.stars_rounded, size: 60, color: Colors.white24),
-                  ],
-                ),
-              ),
-            ),
-          ),
 
-          const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
           // ── Quick Actions ──
           SliverToBoxAdapter(
@@ -239,28 +196,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   GridView.count(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: 3,
+                    crossAxisCount: 2,
                     mainAxisSpacing: 10,
                     crossAxisSpacing: 10,
-                    childAspectRatio: 0.85,
+                    childAspectRatio: 1.1,
                     children: [
-                      _quickAction(
-                        icon: Icons.auto_graph_rounded,
-                        label: 'Prediksi\nHarga',
-                        color: const Color(0xFF6366f1),
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrediksiScreen())),
-                      ),
                       _quickAction(
                         icon: Icons.stars_rounded,
                         label: 'Rekomen-\ndasi',
                         color: const Color(0xFFf59e0b),
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RekomendasiScreen())),
-                      ),
-                      _quickAction(
-                        icon: Icons.compare_arrows_rounded,
-                        label: 'Bandingan\nProperti',
-                        color: const Color(0xFF10b981),
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BandingkanScreen())),
                       ),
                       _quickAction(
                         icon: Icons.calculate_rounded,
@@ -273,6 +218,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         label: 'Favorit\nSaya',
                         color: const Color(0xFFef4444),
                         onTap: () => setState(() => _selectedIndex = 2),
+                      ),
+                      _quickAction(
+                        icon: Icons.account_balance_wallet_rounded,
+                        label: 'Rekomendasi\nFinansial',
+                        color: const Color(0xFF10b981), // emerald
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RekomendasiFinansialScreen())),
                       ),
                       _quickAction(
                         icon: Icons.search_rounded,

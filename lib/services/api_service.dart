@@ -8,10 +8,11 @@ import '../models/budget_result.dart';
 
 class ApiService {
   // UNTUK EMULATOR: http://10.0.2.2:8000/api
-  // UNTUK HP FISIK: http://192.168.x.x:8000/api
-  static const String baseUrl = kIsWeb 
-      ? 'http://127.0.0.1:8000/api' 
-      : 'http://10.10.186.109:8000/api';
+  // UNTUK HP FISIK (WiFi sama): http://192.168.x.x:8000/api (ganti IP komputer Anda)
+  // static const String baseUrl = 'http://10.114.170.50:8000/api';
+  static const String baseUrl = 'http://192.168.1.37:8000/api';
+  // static const String baseUrl = 'http://10.125.173.46:8000/api';
+  // static const String baseUrl = 'http://192.168.1.22:8000/api';
 
   static String getImageUrl(String? foto) {
     if (foto == null || foto.isEmpty) return '';
@@ -528,4 +529,48 @@ class ApiService {
       return [];
     }
   }
+
+  /// Rekomendasi ML (KNN) — kirim payload Map langsung
+  Future<Map<String, dynamic>?> recommendML(Map<String, dynamic> payload) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/recommend'),
+        headers: await getHeaders(needsAuth: false),
+        body: jsonEncode(payload),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data;
+      }
+      return null;
+    } catch (e) {
+      print("API ERROR recommendML: $e");
+      return null;
+    }
+  }
+
+  /// Rekomendasi Finansial — hitung budget + cari properti via AI
+  Future<Map<String, dynamic>?> hitungRekomendasiFinansial(Map<String, dynamic> payload) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/rekomendasi-finansial'),
+        headers: await getHeaders(needsAuth: false),
+        body: jsonEncode(payload),
+      );
+
+      print("API: hitungRekomendasiFinansial status: ${response.statusCode}");
+      print("API: hitungRekomendasiFinansial body: ${response.body}");
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data;
+      }
+      return {'success': false, 'message': 'Server error: ${response.statusCode}'};
+    } catch (e) {
+      print("API ERROR hitungRekomendasiFinansial: $e");
+      return {'success': false, 'message': 'Gagal terhubung ke server: $e'};
+    }
+  }
 }
+
