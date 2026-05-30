@@ -1,10 +1,8 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../providers/rumah_provider.dart';
-import '../../models/rumah.dart';
 import '../../services/api_service.dart';
+import '../../models/rumah.dart';
 import 'detail_rumah_screen.dart';
+import 'package:intl/intl.dart';
 
 class RekomendasiScreen extends StatefulWidget {
   const RekomendasiScreen({super.key});
@@ -14,269 +12,436 @@ class RekomendasiScreen extends StatefulWidget {
 }
 
 class _RekomendasiScreenState extends State<RekomendasiScreen> {
-  final _api = ApiService();
-  static const _primary = Color(0xFF0f766e);
-  
-  double _wHarga = 3;
-  double _wTanah = 3;
-  double _wBangunan = 3;
-  double _wKT = 3;
-  double _wKM = 2;
+  final _formKey = GlobalKey<FormState>();
+  final ApiService _api = ApiService();
 
-  String? _filterLokasi;
-  final _budgetC = TextEditingController();
-  List<_RankedRumah>? _results;
+  // Form Controllers
+  final _hargaC = TextEditingController();
+  final _kamarTidurC = TextEditingController(text: "3");
+  final _kamarMandiC = TextEditingController(text: "2");
+  final _luasTanahC = TextEditingController(text: "120");
+  final _luasBangunanC = TextEditingController(text: "80");
 
-  List<String> _lokasiList = [];
+  String? _kota;
+  String? _posisiKota;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadLokasi();
-  }
+  final List<String> _listKota = ['Jakarta', 'Bogor', 'Depok', 'Tangerang', 'Bekasi'];
+  final List<String> _listPosisi = ['Pusat Kota', 'Dekat Pusat Kota', 'Pinggiran Kota'];
 
-  void _loadLokasi() async {
-    final list = await _api.getLokasi();
-    if (mounted) setState(() => _lokasiList = list);
-  }
+  bool _isLoading = false;
+  Map<String, dynamic>? _resultData;
 
   @override
   void dispose() {
-    _budgetC.dispose();
+    _hargaC.dispose();
+    _kamarTidurC.dispose();
+    _kamarMandiC.dispose();
+    _luasTanahC.dispose();
+    _luasBangunanC.dispose();
     super.dispose();
   }
 
-  Future<void> _calculate() async {
-    setState(() => _results = null); // Reset results to show loading if needed
-
-    final int budget = int.tryParse(_budgetC.text) ?? 0;
-
-    final results = await _api.recommend(
-      lokasi: _filterLokasi == '' ? null : _filterLokasi,
-      budgetMax: budget > 0 ? budget : null,
-      wHarga: _wHarga.toInt(),
-      wTanah: _wTanah.toInt(),
-      wBangunan: _wBangunan.toInt(),
-      wKamar: _wKT.toInt(),
-    );
-
-    setState(() {
-      _results = results.map((r) => _RankedRumah(rumah: r, score: r.score ?? 0.0)).toList();
-    });
+  String _formatCurrency(num amount) {
+    return NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0).format(amount);
   }
 
-  String _formatHarga(int harga) {
-    if (harga >= 1000000000) return 'Rp ${(harga / 1000000000).toStringAsFixed(1)}M';
-    if (harga >= 1000000) return 'Rp ${(harga / 1000000).toStringAsFixed(0)}Jt';
-    return 'Rp $harga';
+  Future<void> _hitungRekomendasi() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_kota == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pilih Kota terlebih dahulu')));
+      return;
+    }
+    if (_posisiKota == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pilih Posisi Kota terlebih dahulu')));
+      return;
+    }
+
+    final harga = int.tryParse(_hargaC.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+    
+    if (harga <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Target harga harus lebih dari 0')));
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _resultData = null;
+    });
+
+    final payload = {
+      'harga': harga,
+      'kamar_tidur': int.tryParse(_kamarTidurC.text) ?? 1,
+      'kamar_mandi': int.tryParse(_kamarMandiC.text) ?? 1,
+      'luas_tanah': int.tryParse(_luasTanahC.text) ?? 1,
+      'luas_bangunan': int.tryParse(_luasBangunanC.text) ?? 1,
+      'kota': _kota,
+      'posisi_kota': _posisiKota,
+    };
+
+    final result = await _api.recommendML(payload);
+    
+    if (!mounted) return;
+
+    if (result != null && result['success'] == true) {
+      setState(() {
+        _resultData = result;
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(result?['message']?.toString() ?? 'Gagal menghubungi server.'),
+        backgroundColor: Colors.red,
+      ));
+    }
+
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final rumahProvider = context.watch<RumahProvider>();
-
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(title: const Text('Rekomendasi'), backgroundColor: _primary),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+      appBar: AppBar(
+        title: const Text('Rekomendasi Pintar', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        backgroundColor: const Color(0xFF0f766e),
+        elevation: 0,
+      ),
+      body: _resultData == null 
+          ? _buildForm() 
+          : _buildResult(),
+    );
+  }
+
+  Widget _buildForm() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Form(
+        key: _formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Header
+            // Hero
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(colors: [Color(0xFF0f766e), Color(0xFF0d9488)]),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
               ),
               child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.stars_rounded, size: 40, color: Colors.white),
+                  Text('🤖 ML KNN Clustering', 
+                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800, height: 1.3)),
                   SizedBox(height: 8),
-                  Text('Rekomendasi Personal', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                  SizedBox(height: 4),
-                  Text('Atur prioritas dan dapatkan ranking terbaik', style: TextStyle(color: Colors.white70, fontSize: 13), textAlign: TextAlign.center),
+                  Text('Masukkan kriteria idamanmu, sistem akan menggunakan Machine Learning untuk mencari cluster terbaik.', 
+                    style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4)),
                 ],
               ),
             ),
+            const SizedBox(height: 24),
 
+            // Form Target
+            _buildSectionTitle('🎯 Target & Lokasi'),
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: Colors.grey.shade300)),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    _buildCurrencyInput('Target Harga (Rp)', _hargaC, Icons.payments),
+                    const SizedBox(height: 16),
+                    _buildDropdown('Kota', _kota, _listKota, (val) => setState(() => _kota = val), Icons.location_city),
+                    const SizedBox(height: 16),
+                    _buildDropdown('Posisi Kota', _posisiKota, _listPosisi, (val) => setState(() => _posisiKota = val), Icons.place),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 20),
 
-            // Weights Card
+            // Form Spesifikasi Fisik
+            _buildSectionTitle('🏠 Spesifikasi Fisik'),
             Card(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: Colors.grey.shade300)),
               child: Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Row(
+                    Row(
                       children: [
-                        Icon(Icons.tune, color: _primary, size: 20),
-                        SizedBox(width: 8),
-                        Text('Prioritas Kriteria', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        Expanded(child: _buildNumberInput('Kamar Tidur', _kamarTidurC, Icons.bed)),
+                        const SizedBox(width: 16),
+                        Expanded(child: _buildNumberInput('Kamar Mandi', _kamarMandiC, Icons.shower)),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text('Geser slider (1=rendah, 5=sangat penting)', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                     const SizedBox(height: 16),
-
-                    _sliderRow('💰 Harga Terjangkau', _wHarga, (v) => setState(() => _wHarga = v)),
-                    _sliderRow('📐 Luas Tanah', _wTanah, (v) => setState(() => _wTanah = v)),
-                    _sliderRow('🏗️ Luas Bangunan', _wBangunan, (v) => setState(() => _wBangunan = v)),
-                    _sliderRow('🛏️ Kamar Tidur', _wKT, (v) => setState(() => _wKT = v)),
-                    _sliderRow('🚿 Kamar Mandi', _wKM, (v) => setState(() => _wKM = v)),
-
-                    const SizedBox(height: 16),
-                    const Divider(),
-                    const SizedBox(height: 8),
-
-                    // Filters
-                    DropdownButtonFormField<String>(
-                      value: _filterLokasi,
-                      decoration: InputDecoration(
-                        labelText: 'Filter Lokasi (Opsional)',
-                        prefixIcon: const Icon(Icons.location_on_outlined, size: 20, color: _primary),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      ),
-                      items: [
-                        const DropdownMenuItem(value: '', child: Text('Semua Lokasi')),
-                        ..._lokasiList.map((l) => DropdownMenuItem(value: l, child: Text(l))),
+                    Row(
+                      children: [
+                        Expanded(child: _buildNumberInput('L. Tanah (m²)', _luasTanahC, Icons.landscape)),
+                        const SizedBox(width: 16),
+                        Expanded(child: _buildNumberInput('L. Bangunan (m²)', _luasBangunanC, Icons.foundation)),
                       ],
-                      onChanged: (v) => setState(() => _filterLokasi = v),
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _budgetC,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Budget Maks (Opsional)',
-                        prefixIcon: const Icon(Icons.attach_money, size: 20, color: _primary),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    ElevatedButton.icon(
-                      onPressed: rumahProvider.isLoading ? null : _calculate,
-                      icon: const Icon(Icons.stars_rounded),
-                      label: const Text('Dapatkan Rekomendasi'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        minimumSize: const Size(double.infinity, 48),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                      ),
                     ),
                   ],
                 ),
               ),
             ),
+            const SizedBox(height: 24),
 
-            // Results
-            if (_results != null) ...[
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(color: _primary.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                    child: const Text('Metode SAW', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _primary)),
-                  ),
-                  const Spacer(),
-                  Text('${_results!.length} properti', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                ],
+            ElevatedButton(
+              onPressed: _isLoading ? null : _hitungRekomendasi,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0f766e),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
-              const SizedBox(height: 12),
-
-              if (_results!.isEmpty)
-                Card(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  child: const Padding(
-                    padding: EdgeInsets.all(32),
-                    child: Column(
-                      children: [
-                        Icon(Icons.search_off, size: 48, color: Colors.grey),
-                        SizedBox(height: 8),
-                        Text('Tidak ada properti cocok', style: TextStyle(fontWeight: FontWeight.w600)),
-                        Text('Coba ubah filter', style: TextStyle(color: Colors.grey, fontSize: 13)),
-                      ],
-                    ),
+              child: _isLoading 
+                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.search),
+                      SizedBox(width: 8),
+                      Text('Cari Properti via AI', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ],
                   ),
-                )
-              else
-                ..._results!.asMap().entries.map((entry) {
-                  final rank = entry.key + 1;
-                  final item = entry.value;
-                  return _rankCard(rank, item);
-                }),
-            ],
-
-            const SizedBox(height: 20),
+            ),
+            const SizedBox(height: 40),
           ],
         ),
       ),
     );
   }
 
-  Widget _sliderRow(String label, double value, ValueChanged<double> onChanged) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
+  Widget _buildResult() {
+    final data = _resultData!;
+    final listRumah = (data['data'] as List).map((e) => Rumah.fromJson(e)).toList();
+    final isFallback = data['is_fallback'] ?? false;
+    final reqKota = data['req_kota'] ?? _kota;
+    
+    // ML Data
+    final isOnline = data['ml_status'] == 'online';
+    final clusterId = data['predicted_cluster'];
+    final kategori = data['kategori'];
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(
-            width: 130,
-            child: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+          
+          // ML Cluster Badge
+          if (isOnline && clusterId != null)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: clusterId == 0 ? Colors.green.shade200 : Colors.blue.shade200),
+                boxShadow: [BoxShadow(color: (clusterId == 0 ? Colors.green : Colors.blue).withOpacity(0.05), blurRadius: 10)],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: clusterId == 0 ? Colors.green.shade100 : Colors.blue.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      clusterId == 0 ? '🏡 Ekonomis' : '🏰 Premium',
+                      style: TextStyle(fontWeight: FontWeight.bold, color: clusterId == 0 ? Colors.green.shade800 : Colors.blue.shade800),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'AI mengklasifikasikan kriteria ini sebagai properti ${kategori ?? (clusterId==0?"Ekonomis":"Premium")}.',
+                      style: const TextStyle(fontSize: 12, color: Colors.black87),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+          const SizedBox(height: 24),
+          
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Rekomendasi Properti', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(color: const Color(0xFF0f766e).withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                child: Text('${listRumah.length} Properti', style: const TextStyle(color: Color(0xFF0f766e), fontWeight: FontWeight.bold, fontSize: 12)),
+              ),
+            ],
           ),
-          Expanded(
-            child: Slider(
-              value: value,
-              min: 1, max: 5,
-              divisions: 4,
-              activeColor: _primary,
-              onChanged: onChanged,
+          const SizedBox(height: 12),
+
+          if (isFallback)
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: Colors.amber.shade50, border: Border.all(color: Colors.amber.shade200), borderRadius: BorderRadius.circular(8)),
+              child: Text('⚠️ Belum ada properti yang cocok di $reqKota dengan kriteria ini. Menampilkan rekomendasi properti dari klaster/rentang harga yang sama.', style: TextStyle(color: Colors.amber.shade900, fontSize: 12)),
+            ),
+
+          if (listRumah.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32.0),
+                child: Column(
+                  children: [
+                    Icon(Icons.search_off, size: 64, color: Colors.grey.shade400),
+                    const SizedBox(height: 16),
+                    const Text('Belum Ada Properti Sesuai', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  ],
+                ),
+              ),
+            )
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: listRumah.length,
+              itemBuilder: (context, index) => _RumahCard(rumah: listRumah[index], rank: index + 1),
+            ),
+          
+          const SizedBox(height: 32),
+          Center(
+            child: OutlinedButton.icon(
+              onPressed: () {
+                setState(() {
+                  _resultData = null;
+                });
+              },
+              icon: const Icon(Icons.refresh),
+              label: const Text('Ubah Kriteria'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF0f766e),
+                side: const BorderSide(color: Color(0xFF0f766e)),
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
             ),
           ),
-          Container(
-            width: 28, height: 28,
-            decoration: BoxDecoration(color: _primary.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-            child: Center(child: Text('${value.toInt()}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: _primary))),
-          ),
+          const SizedBox(height: 20),
         ],
       ),
     );
   }
 
-  Widget _rankCard(int rank, _RankedRumah item) {
-    final medal = rank == 1 ? '🥇' : rank == 2 ? '🥈' : rank == 3 ? '🥉' : '#$rank';
-    final MaterialColor badgeColor = rank == 1
-        ? Colors.amber
-        : rank == 2
-            ? Colors.blueGrey
-            : rank == 3
-                ? Colors.brown
-                : Colors.grey;
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1f2937))),
+    );
+  }
 
+  Widget _buildCurrencyInput(String label, TextEditingController controller, IconData icon) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+        const SizedBox(height: 6),
+        TextFormField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            prefixIcon: Icon(icon, color: const Color(0xFF0f766e), size: 18),
+            prefixText: 'Rp ',
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+            filled: true,
+            fillColor: Colors.grey.shade50,
+          ),
+          validator: (val) => val == null || val.isEmpty ? 'Wajib diisi' : null,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNumberInput(String label, TextEditingController controller, IconData icon) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+        const SizedBox(height: 6),
+        TextFormField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            prefixIcon: Icon(icon, color: const Color(0xFF0f766e), size: 18),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+            filled: true,
+            fillColor: Colors.grey.shade50,
+          ),
+          validator: (val) => val == null || val.isEmpty ? '*' : null,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDropdown(String label, String? value, List<String> items, Function(String?) onChanged, IconData icon) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+        const SizedBox(height: 6),
+        DropdownButtonFormField<String>(
+          value: value,
+          isExpanded: true,
+          decoration: InputDecoration(
+            prefixIcon: Icon(icon, color: const Color(0xFF0f766e), size: 18),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+            filled: true,
+            fillColor: Colors.grey.shade50,
+          ),
+          items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+          onChanged: onChanged,
+          validator: (val) => val == null ? 'Pilih salah satu' : null,
+        ),
+      ],
+    );
+  }
+}
+
+class _RumahCard extends StatelessWidget {
+  final Rumah rumah;
+  final int rank;
+  const _RumahCard({required this.rumah, required this.rank});
+
+  String _formatHarga(int harga) {
+    if (harga >= 1000000000) return 'Rp ${(harga / 1000000000).toStringAsFixed(1)} M';
+    if (harga >= 1000000) return 'Rp ${(harga / 1000000).toStringAsFixed(0)} Jt';
+    return 'Rp $harga';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final medal = rank == 1 ? '🥇' : rank == 2 ? '🥈' : rank == 3 ? '🥉' : '#$rank';
+    final MaterialColor badgeColor = rank == 1 ? Colors.amber : rank == 2 ? Colors.blueGrey : rank == 3 ? Colors.brown : Colors.grey;
+    
     return Card(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: rank == 1 ? const BorderSide(color: _primary, width: 2) : BorderSide.none,
+        side: rank == 1 ? const BorderSide(color: Color(0xFF0f766e), width: 2) : BorderSide.none,
       ),
+      elevation: 0,
+      color: Colors.white,
       child: InkWell(
-        onTap: () => Navigator.push(context, MaterialPageRoute(
-          builder: (_) => DetailRumahScreen(rumahId: item.rumah.id, namaRumah: item.rumah.nama),
-        )),
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DetailRumahScreen(rumahId: rumah.id, namaRumah: rumah.nama))),
         borderRadius: BorderRadius.circular(14),
         child: Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(12),
           child: Row(
             children: [
               // Rank badge
@@ -294,32 +459,17 @@ class _RekomendasiScreenState extends State<RekomendasiScreen> {
               ),
               const SizedBox(width: 14),
 
-              // Info
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(item.rumah.nama, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(rumah.nama, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 2),
-                    Text(
-                      '${item.rumah.lokasi} · ${item.rumah.luasTanah}m² · ${item.rumah.kamarTidur}KT · ${_formatHarga(item.rumah.harga)}',
-                      style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-                      maxLines: 1, overflow: TextOverflow.ellipsis,
-                    ),
+                    Text('${rumah.lokasi} · ${rumah.luasTanah}m² · ${rumah.kamarTidur}KT', style: TextStyle(fontSize: 11, color: Colors.grey.shade600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 4),
+                    Text(_formatHarga(rumah.harga), style: const TextStyle(color: Color(0xFF0f766e), fontWeight: FontWeight.w800, fontSize: 14)),
                   ],
                 ),
-              ),
-              const SizedBox(width: 8),
-
-              // Score
-              Column(
-                children: [
-                  Text(
-                    (item.score * 100).toStringAsFixed(1),
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: _primary),
-                  ),
-                  Text('Skor', style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
-                ],
               ),
             ],
           ),
@@ -327,10 +477,4 @@ class _RekomendasiScreenState extends State<RekomendasiScreen> {
       ),
     );
   }
-}
-
-class _RankedRumah {
-  final Rumah rumah;
-  final double score;
-  _RankedRumah({required this.rumah, required this.score});
 }

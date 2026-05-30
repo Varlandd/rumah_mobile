@@ -195,6 +195,28 @@ class AdminProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> deleteMultipleRumah(List<String> ids) async {
+    _setLoading(true);
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiService.baseUrl}/admin/rumah/bulk-delete'),
+        headers: await _api.getHeaders(needsAuth: true),
+        body: jsonEncode({'ids': ids}),
+      );
+
+      if (response.statusCode == 200) {
+        return true;
+      }
+      _errorMessage = 'Gagal menghapus beberapa rumah';
+      return false;
+    } catch (e) {
+      _errorMessage = 'Error: $e';
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   void _setLoading(bool val) {
     _isLoading = val;
     notifyListeners();
